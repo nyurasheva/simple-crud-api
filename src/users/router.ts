@@ -2,6 +2,8 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { v4 as uuidv4, validate as isUUID } from 'uuid';
 import { User, CreateUserData } from './types';
 import { MemoryRepository } from './repository';
+import { parseJSONBody } from '../utils/parseBody';
+import { sendJson } from '../utils/sendResponse';
 
 const userRepository = new MemoryRepository<User>();
 
@@ -28,94 +30,74 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
 
   if (method === 'GET' && url === '/users') {
     const users = userRepository.findAll();
-    res.writeHead(200);
-    return res.end(JSON.stringify(users));
+    return sendJson(res, 200, users);
   }
 
   if (method === 'POST' && url === '/users') {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      let data: unknown;
-      try {
-        data = JSON.parse(body);
-      } catch {
-        res.writeHead(400);
-        return res.end(JSON.stringify({ message: 'Invalid JSON' }));
+    try {
+      const body = await parseJSONBody<CreateUserData>(req);
+      if (!isValidUserData(body)) {
+        throw new Error('Invalid user data');
       }
-
-      if (!isValidUserData(data)) {
-        res.writeHead(400);
-        return res.end(JSON.stringify({ message: 'Invalid user data' }));
-      }
-
-      const newUser: User = { id: uuidv4(), ...data };
+      const newUser: User = { id: uuidv4(), ...body };
       userRepository.create(newUser);
-
-      res.writeHead(201);
-      return res.end(JSON.stringify(newUser));
-    });
-    return;
+      return sendJson(res, 201, newUser);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'Invalid JSON') {
+        return sendJson(res, 400, { message: 'Invalid JSON' });
+      }
+      if (err instanceof Error) {
+        return sendJson(res, 400, { message: err.message });
+      }
+      return sendJson(res, 400, { message: 'Unknown error occurred' });
+    }
   }
 
   if (url?.startsWith('/users/')) {
     const id = extractValidUUID(url);
     if (!id) {
-      res.writeHead(400);
-      return res.end(JSON.stringify({ message: 'Invalid userId' }));
+      return sendJson(res, 400, { message: 'Invalid userId' });
     }
 
     if (method === 'GET') {
       const user = userRepository.findById(id);
       if (!user) {
-        res.writeHead(404);
-        return res.end(JSON.stringify({ message: 'User not found' }));
+        return sendJson(res, 404, { message: 'User not found' });
       }
-      res.writeHead(200);
-      return res.end(JSON.stringify(user));
+      return sendJson(res, 200, user);
     }
 
     if (method === 'PUT') {
-      let body = '';
-      req.on('data', (chunk) => (body += chunk));
-      req.on('end', () => {
-        let data: unknown;
-        try {
-          data = JSON.parse(body);
-        } catch {
-          res.writeHead(400);
-          return res.end(JSON.stringify({ message: 'Invalid JSON' }));
+      try {
+        const body = await parseJSONBody<CreateUserData>(req);
+        if (!isValidUserData(body)) {
+          throw new Error('Invalid user data');
         }
-
-        if (!isValidUserData(data)) {
-          res.writeHead(400);
-          return res.end(JSON.stringify({ message: 'Invalid user data' }));
-        }
-
-        const updatedUser: User = { id, ...data };
-        const success = userRepository.update(id, data);
+        const updatedUser: User = { id, ...body };
+        const success = userRepository.update(id, body);
         if (!success) {
-          res.writeHead(404);
-          return res.end(JSON.stringify({ message: 'User not found' }));
+          return sendJson(res, 404, { message: 'User not found' });
         }
-
-        res.writeHead(200);
-        return res.end(JSON.stringify(updatedUser));
-      });
-      return;
+        return sendJson(res, 200, updatedUser);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'Invalid JSON') {
+          return sendJson(res, 400, { message: 'Invalid JSON' });
+        }
+        if (err instanceof Error) {
+          return sendJson(res, 400, { message: err.message });
+        }
+        return sendJson(res, 400, { message: 'Unknown error occurred' });
+      }
     }
 
     if (method === 'DELETE') {
       const deleted = userRepository.delete(id);
       if (!deleted) {
-        res.writeHead(404);
-        return res.end(JSON.stringify({ message: 'User not found' }));
+        return sendJson(res, 404, { message: 'User not found' });
       }
-      res.writeHead(204);
-      return res.end();
+      return sendJson(res, 204, {});
     }
   }
 
-  res.writeHead(404);
-  res.end(JSON.stringify({ message: 'Route not found' }));
+  return sendJson(res, 404, { message: 'Route not found' });
 }

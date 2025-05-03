@@ -9,7 +9,7 @@
   "scripts": {
     "start:dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start:prod": "tsc && node dist/index.js",
-    "start:multi": "ts-node src/cluster.ts",
+    "start:multi": "ts-node-dev --respawn --transpile-only src/cluster.ts",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1"

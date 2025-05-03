@@ -1,6 +1,7 @@
 import http from 'http';
 import dotenv from 'dotenv';
 import { userRouter } from './users/router';
+import { log, error } from './utils/logger';
 
 dotenv.config();
 
@@ -15,12 +16,12 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ message: 'Route not found' }));
   } catch (err: unknown) {
-    console.error('Unhandled error in request handler:', err);
+    error('Unhandled error in request handler:', err);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ message: 'Internal Server Error' }));
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+  log(`Server is listening on port ${PORT}`);
 });
