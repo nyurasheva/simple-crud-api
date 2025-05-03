@@ -1,150 +1,121 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import { validate as isUUID } from 'uuid';
-import {
-  createUserService,
-  getAllUsersService,
-  getUserByIdService,
-  updateUserService,
-  deleteUserByIdService,
-} from './service';
-import { User } from './types';
+import { v4 as uuidv4, validate as isUUID } from 'uuid';
+import { User, CreateUserData } from './types';
+import { MemoryRepository } from './repository';
 
-// Тип для парсинга тела запроса
-type ParsedBody = Partial<Omit<User, 'id'>> & Record<string, unknown>;
+const userRepository = new MemoryRepository<User>();
 
-// Хелпер для чтения JSON-тела
-async function parseBody(req: IncomingMessage): Promise<ParsedBody> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        const parsed = JSON.parse(body || '{}') as ParsedBody;
-        resolve(parsed);
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-  });
+function isValidUserData(data: unknown): data is CreateUserData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof (data as CreateUserData).username === 'string' &&
+    typeof (data as CreateUserData).age === 'number' &&
+    Array.isArray((data as CreateUserData).hobbies) &&
+    (data as CreateUserData).hobbies.every((h) => typeof h === 'string')
+  );
 }
 
-// Хелпер для извлечения ID из URL
-function extractId(url: string | undefined): string | undefined {
+function extractValidUUID(url: string | undefined): string | null {
   const match = url?.match(/^\/users\/([0-9a-fA-F-]{36})$/);
-  return match ? match[1] : undefined;
+  const id = match ? match[1] : null;
+  return id && isUUID(id) ? id : null;
 }
 
 export async function userRouter(req: IncomingMessage, res: ServerResponse) {
   const { method, url } = req;
   res.setHeader('Content-Type', 'application/json');
 
-  // GET /users
   if (method === 'GET' && url === '/users') {
+    const users = userRepository.findAll();
     res.writeHead(200);
-    return res.end(JSON.stringify(getAllUsersService()));
+    return res.end(JSON.stringify(users));
   }
 
-  // POST /users
   if (method === 'POST' && url === '/users') {
-    try {
-      const data = await parseBody(req);
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      let data: unknown;
+      try {
+        data = JSON.parse(body);
+      } catch {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ message: 'Invalid JSON' }));
+      }
 
-      // Валидация полей
-      if (
-        typeof data.username !== 'string' ||
-        typeof data.age !== 'number' ||
-        !Array.isArray(data.hobbies) ||
-        !data.hobbies.every((h) => typeof h === 'string')
-      ) {
+      if (!isValidUserData(data)) {
         res.writeHead(400);
         return res.end(JSON.stringify({ message: 'Invalid user data' }));
       }
 
-      const user = createUserService({
-        username: data.username,
-        age: data.age,
-        hobbies: data.hobbies,
-      });
+      const newUser: User = { id: uuidv4(), ...data };
+      userRepository.create(newUser);
 
       res.writeHead(201);
-      return res.end(JSON.stringify(user));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return res.end(JSON.stringify(newUser));
+    });
+    return;
+  }
+
+  if (url?.startsWith('/users/')) {
+    const id = extractValidUUID(url);
+    if (!id) {
       res.writeHead(400);
-      return res.end(JSON.stringify({ message: msg }));
+      return res.end(JSON.stringify({ message: 'Invalid userId' }));
     }
-  }
 
-  // Всё, что дальше — /users/:id
-  const id = extractId(url);
-  if (!id) {
-    res.writeHead(404);
-    return res.end(JSON.stringify({ message: 'Route not found' }));
-  }
-  if (!isUUID(id)) {
-    res.writeHead(400);
-    return res.end(JSON.stringify({ message: 'Invalid userId' }));
-  }
-
-  // GET /users/:id
-  if (method === 'GET') {
-    const user = getUserByIdService(id);
-    if (!user) {
-      res.writeHead(404);
-      return res.end(JSON.stringify({ message: 'User not found' }));
-    }
-    res.writeHead(200);
-    return res.end(JSON.stringify(user));
-  }
-
-  // PUT /users/:id
-  if (method === 'PUT') {
-    try {
-      const data = await parseBody(req);
-
-      // Валидация полей
-      if (
-        typeof data.username !== 'string' ||
-        typeof data.age !== 'number' ||
-        !Array.isArray(data.hobbies) ||
-        !data.hobbies.every((h) => typeof h === 'string')
-      ) {
-        res.writeHead(400);
-        return res.end(JSON.stringify({ message: 'Invalid user data' }));
-      }
-
-      const updated = updateUserService(id, {
-        username: data.username,
-        age: data.age,
-        hobbies: data.hobbies,
-      });
-
-      if (!updated) {
+    if (method === 'GET') {
+      const user = userRepository.findById(id);
+      if (!user) {
         res.writeHead(404);
         return res.end(JSON.stringify({ message: 'User not found' }));
       }
-
       res.writeHead(200);
-      return res.end(JSON.stringify(updated));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      res.writeHead(400);
-      return res.end(JSON.stringify({ message: msg }));
+      return res.end(JSON.stringify(user));
+    }
+
+    if (method === 'PUT') {
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        let data: unknown;
+        try {
+          data = JSON.parse(body);
+        } catch {
+          res.writeHead(400);
+          return res.end(JSON.stringify({ message: 'Invalid JSON' }));
+        }
+
+        if (!isValidUserData(data)) {
+          res.writeHead(400);
+          return res.end(JSON.stringify({ message: 'Invalid user data' }));
+        }
+
+        const updatedUser: User = { id, ...data };
+        const success = userRepository.update(id, data);
+        if (!success) {
+          res.writeHead(404);
+          return res.end(JSON.stringify({ message: 'User not found' }));
+        }
+
+        res.writeHead(200);
+        return res.end(JSON.stringify(updatedUser));
+      });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      const deleted = userRepository.delete(id);
+      if (!deleted) {
+        res.writeHead(404);
+        return res.end(JSON.stringify({ message: 'User not found' }));
+      }
+      res.writeHead(204);
+      return res.end();
     }
   }
 
-  // DELETE /users/:id
-  if (method === 'DELETE') {
-    const deleted = deleteUserByIdService(id);
-    if (!deleted) {
-      res.writeHead(404);
-      return res.end(JSON.stringify({ message: 'User not found' }));
-    }
-    res.writeHead(204);
-    return res.end();
-  }
-
-  // Иначе — 404
   res.writeHead(404);
   res.end(JSON.stringify({ message: 'Route not found' }));
 }
