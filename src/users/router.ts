@@ -48,12 +48,24 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
   if (method === 'POST' && url === '/users') {
     try {
       const data = await parseBody(req);
-      const userData = {
-        username: data.username as string,
-        age: data.age as number,
-        hobbies: data.hobbies as string[],
-      };
-      const user = createUserService(userData);
+
+      // Валидация полей
+      if (
+        typeof data.username !== 'string' ||
+        typeof data.age !== 'number' ||
+        !Array.isArray(data.hobbies) ||
+        !data.hobbies.every((h) => typeof h === 'string')
+      ) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ message: 'Invalid user data' }));
+      }
+
+      const user = createUserService({
+        username: data.username,
+        age: data.age,
+        hobbies: data.hobbies,
+      });
+
       res.writeHead(201);
       return res.end(JSON.stringify(user));
     } catch (err: unknown) {
@@ -89,16 +101,29 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
   if (method === 'PUT') {
     try {
       const data = await parseBody(req);
-      const userData = {
-        username: data.username as string,
-        age: data.age as number,
-        hobbies: data.hobbies as string[],
-      };
-      const updated = updateUserService(id, userData);
+
+      // Валидация полей
+      if (
+        typeof data.username !== 'string' ||
+        typeof data.age !== 'number' ||
+        !Array.isArray(data.hobbies) ||
+        !data.hobbies.every((h) => typeof h === 'string')
+      ) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ message: 'Invalid user data' }));
+      }
+
+      const updated = updateUserService(id, {
+        username: data.username,
+        age: data.age,
+        hobbies: data.hobbies,
+      });
+
       if (!updated) {
         res.writeHead(404);
         return res.end(JSON.stringify({ message: 'User not found' }));
       }
+
       res.writeHead(200);
       return res.end(JSON.stringify(updated));
     } catch (err: unknown) {
