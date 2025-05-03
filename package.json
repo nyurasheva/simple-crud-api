@@ -1,0 +1,50 @@
+{
+  "name": "simple-crud-api",
+  "version": "1.0.0",
+  "description": "Node.js CRUD API - RSS Assignment",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start:dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start:prod": "tsc && node dist/index.js",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nyurasheva/simple-crud-api.git"
+  },
+  "keywords": [
+    "nodejs",
+    "crud",
+    "api"
+  ],
+  "author": "Anastasia Uraseva",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nyurasheva/simple-crud-api/issues"
+  },
+  "homepage": "https://github.com/nyurasheva/simple-crud-api#readme",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.5.3",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  }
+}
