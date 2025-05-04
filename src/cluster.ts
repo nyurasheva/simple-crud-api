@@ -1,14 +1,12 @@
 import cluster from 'cluster';
 import { cpus } from 'os';
-import { createServer } from 'http';
-import { userRouter } from './users/router';
-import { handleErrors } from './middleware/errorHandler';
 import dotenv from 'dotenv';
+import { createAppServer } from './app';
 import { log } from './utils/logger';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 4000;
 const numCPUs = cpus().length;
 
 if (cluster.isPrimary) {
@@ -16,20 +14,12 @@ if (cluster.isPrimary) {
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
-
   cluster.on('exit', (worker) => {
     log(`Worker ${worker.process.pid} died, restarting...`);
     cluster.fork();
   });
 } else {
-  const server = createServer(async (req, res) => {
-    try {
-      await userRouter(req, res);
-    } catch (err) {
-      handleErrors(err, res);
-    }
-  });
-
+  const server = createAppServer();
   server.listen(PORT, () => {
     log(`Worker ${process.pid} started on port ${PORT}`);
   });

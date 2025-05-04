@@ -1,31 +1,29 @@
-import { User } from './types';
-
 export class MemoryRepository<T extends { id: string }> {
-  private data = new Map<string, T>();
+  private storage: Map<string, T> = new Map();
 
   create(item: T): T {
-    this.data.set(item.id, item);
+    this.storage.set(item.id, item);
     return item;
   }
 
   findAll(): T[] {
-    return Array.from(this.data.values());
+    return Array.from(this.storage.values());
   }
 
   findById(id: string): T | undefined {
-    return this.data.get(id);
+    return this.storage.get(id);
   }
 
-  update(id: string, item: Omit<T, 'id'>): T | undefined {
-    if (!this.data.has(id)) return undefined;
-    const updated = { id, ...item } as T;
-    this.data.set(id, updated);
+  update(id: string, item: Partial<Omit<T, 'id'>>): T | undefined {
+    const existing = this.storage.get(id);
+    if (!existing) return undefined;
+
+    const updated: T = { ...existing, ...item, id };
+    this.storage.set(id, updated);
     return updated;
   }
 
   delete(id: string): boolean {
-    return this.data.delete(id);
+    return this.storage.delete(id);
   }
 }
-
-export const memoryRepository = new MemoryRepository<User>();

@@ -1,8 +1,9 @@
-export interface User {
-  id: string;
+export interface CreateUserData {
   username: string;
   age: number;
   hobbies: string[];
 }
 
-export type CreateUserData = Omit<User, 'id'>;
+export interface User extends CreateUserData {
+  id: string;
+}
