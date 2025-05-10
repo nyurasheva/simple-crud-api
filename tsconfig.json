@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "CommonJS",
+    "module": "ESNext", 
     "lib": ["ESNext"],
     "outDir": "dist",
     "baseUrl": "src",
@@ -25,6 +25,9 @@
     "sourceMap": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "webpack.config.js",
+  ],
   "exclude": ["node_modules", "dist"]
 }
