@@ -27,7 +27,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "webpack.config.js",
+    "webpack.config.js", 
+    "src/__tests__/router",
   ],
   "exclude": ["node_modules", "dist"]
 }
