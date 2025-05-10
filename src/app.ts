@@ -14,9 +14,7 @@ export function createAppServer() {
         req.url = req.url.slice(4);
         return await userRouter(req, res);
       }
-      return sendJson(res, HTTP_STATUS.NOT_FOUND, {
-        message: MESSAGES.ROUTE_NOT_FOUND,
-      });
+      return sendJson(res, HTTP_STATUS.NOT_FOUND, MESSAGES.ROUTE_NOT_FOUND);
     } catch (err: unknown) {
       return handleErrors(err, res);
     }

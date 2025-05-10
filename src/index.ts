@@ -1,4 +1,3 @@
-// src/index.ts
 import { createAppServer } from './app';
 import dotenv from 'dotenv';
 import { log } from './utils/logger';

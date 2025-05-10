@@ -78,9 +78,8 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
         if (!isValidUserData(body)) {
           throw new Error(MESSAGES.INVALID_USER_DATA);
         }
-        const updatedUser: User = { id, ...body };
-        const success = userRepository.update(id, body);
-        if (!success) {
+        const updatedUser = userRepository.update(id, body);
+        if (!updatedUser) {
           return sendJson(res, HTTP_STATUS.NOT_FOUND, {
             message: MESSAGES.USER_NOT_FOUND,
           });
@@ -110,7 +109,8 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
           message: MESSAGES.USER_NOT_FOUND,
         });
       }
-      return sendJson(res, HTTP_STATUS.NO_CONTENT, {});
+      res.writeHead(HTTP_STATUS.NO_CONTENT);
+      return res.end();
     }
   }
 

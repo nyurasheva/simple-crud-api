@@ -1,4 +1,5 @@
 import { ServerResponse } from 'http';
+import { HTTP_STATUS } from '../constants';
 
 export function sendJson(
   res: ServerResponse,
@@ -6,5 +7,5 @@ export function sendJson(
   body: unknown
 ): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(body));
+  res.end(status === HTTP_STATUS.NO_CONTENT ? undefined : JSON.stringify(body));
 }
