@@ -6,7 +6,7 @@ import { parseJSONBody } from '../utils/parseBody';
 import { sendJson } from '../utils/sendResponse';
 import { logMessage } from '../utils/logger';
 import { HTTP_STATUS, MESSAGES } from '../constants';
-import { isValidUserData } from './validate';
+import { isValidUserData, isValidPutUserData } from './validate';
 
 const userRepository = new MemoryRepository<User>();
 
@@ -75,16 +75,27 @@ export async function userRouter(req: IncomingMessage, res: ServerResponse) {
     if (method === 'PUT') {
       try {
         const body = await parseJSONBody<CreateUserData>(req);
-        if (!isValidUserData(body)) {
-          throw new Error(MESSAGES.INVALID_USER_DATA);
+
+        if (!isValidPutUserData(body)) {
+          return sendJson(res, HTTP_STATUS.BAD_REQUEST, {
+            message: MESSAGES.INVALID_USER_DATA,
+          });
         }
-        const updatedUser = userRepository.update(id, body);
-        if (!updatedUser) {
+
+        const currentUser = userRepository.findById(id);
+        if (!currentUser) {
           return sendJson(res, HTTP_STATUS.NOT_FOUND, {
             message: MESSAGES.USER_NOT_FOUND,
           });
         }
-        return sendJson(res, HTTP_STATUS.OK, updatedUser);
+
+        const updatedUser: User = {
+          ...currentUser,
+          ...body,
+        };
+
+        const savedUser = userRepository.update(id, updatedUser);
+        return sendJson(res, HTTP_STATUS.OK, savedUser);
       } catch (err: unknown) {
         if (err instanceof Error && err.message === MESSAGES.INVALID_JSON) {
           return sendJson(res, HTTP_STATUS.BAD_REQUEST, {

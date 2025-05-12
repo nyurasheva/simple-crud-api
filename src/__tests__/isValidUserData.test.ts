@@ -1,8 +1,8 @@
-import { isValidUserData } from '../users/validate';
+import { isValidUserData, isValidPutUserData } from '../users/validate';
 import { CreateUserData } from '../users/types';
 
 describe('isValidUserData', () => {
-  it('should return true for valid user data', () => {
+  it('should return true for valid full user data', () => {
     const validData: CreateUserData = {
       username: 'Alice',
       age: 30,
@@ -11,57 +11,96 @@ describe('isValidUserData', () => {
     expect(isValidUserData(validData)).toBe(true);
   });
 
-  it('should return false for missing username', () => {
-    const invalidData = {
+  it('should return false if a required field is missing', () => {
+    const missingUsername = {
       age: 30,
-      hobbies: ['reading', 'gaming'],
+      hobbies: ['reading'],
     };
-    expect(isValidUserData(invalidData)).toBe(false);
+    expect(isValidUserData(missingUsername)).toBe(false);
+
+    const missingAge = {
+      username: 'Alice',
+      hobbies: ['reading'],
+    };
+    expect(isValidUserData(missingAge)).toBe(false);
+
+    const missingHobbies = {
+      username: 'Alice',
+      age: 30,
+    };
+    expect(isValidUserData(missingHobbies)).toBe(false);
   });
 
-  it('should return false for non-string username', () => {
+  it('should return false for negative age', () => {
     const invalidData = {
-      username: 123,
-      age: 30,
+      username: 'Alice',
+      age: -5,
       hobbies: ['reading'],
     };
     expect(isValidUserData(invalidData)).toBe(false);
   });
 
-  it('should return false for non-number age', () => {
-    const invalidData = {
+  it('should return false for invalid types', () => {
+    expect(
+      isValidUserData({ username: 123, age: 30, hobbies: ['reading'] })
+    ).toBe(false);
+
+    expect(
+      isValidUserData({ username: 'Alice', age: '30', hobbies: ['reading'] })
+    ).toBe(false);
+
+    expect(
+      isValidUserData({ username: 'Alice', age: 30, hobbies: 'reading' })
+    ).toBe(false);
+  });
+
+  it('should return false for extra unexpected keys', () => {
+    const dataWithExtra = {
+      username: 'Alice',
+      age: 30,
+      hobbies: ['reading'],
+      email: 'alice@example.com',
+    };
+    expect(isValidUserData(dataWithExtra)).toBe(false);
+  });
+});
+
+describe('isValidPutUserData', () => {
+  it('should return true for full valid data', () => {
+    const data = {
       username: 'Bob',
-      age: 'thirty',
-      hobbies: ['reading'],
+      age: 40,
+      hobbies: ['golf'],
     };
-    expect(isValidUserData(invalidData)).toBe(false);
+    expect(isValidPutUserData(data)).toBe(true);
   });
 
-  it('should return false for non-array hobbies', () => {
-    const invalidData = {
-      username: 'Charlie',
-      age: 25,
-      hobbies: 'reading',
-    };
-    expect(isValidUserData(invalidData)).toBe(false);
+  it('should return true for partial valid data', () => {
+    expect(isValidPutUserData({ username: 'Bob' })).toBe(true);
+    expect(isValidPutUserData({ age: 25 })).toBe(true);
+    expect(isValidPutUserData({ hobbies: ['fishing'] })).toBe(true);
   });
 
-  it('should return false if any hobby is not a string', () => {
-    const invalidData = {
-      username: 'Daisy',
-      age: 22,
-      hobbies: ['reading', 42],
-    };
-    expect(isValidUserData(invalidData)).toBe(false);
+  it('should return false for invalid field values', () => {
+    expect(isValidPutUserData({ username: 123 })).toBe(false);
+    expect(isValidPutUserData({ age: -10 })).toBe(false);
+    expect(isValidPutUserData({ hobbies: 'not-an-array' })).toBe(false);
+    expect(isValidPutUserData({ hobbies: ['a', 2] })).toBe(false);
   });
 
-  it('should return false for null', () => {
-    expect(isValidUserData(null)).toBe(false);
+  it('should return false for non-object input', () => {
+    expect(isValidPutUserData(null)).toBe(false);
+    expect(isValidPutUserData(123)).toBe(false);
+    expect(isValidPutUserData('string')).toBe(false);
+    expect(isValidPutUserData(['username'])).toBe(false);
   });
 
-  it('should return false for non-object types', () => {
-    expect(isValidUserData('string')).toBe(false);
-    expect(isValidUserData(123)).toBe(false);
-    expect(isValidUserData(true)).toBe(false);
+  it('should return false for unknown keys', () => {
+    expect(isValidPutUserData({ email: 'bob@example.com' })).toBe(false);
+    expect(isValidPutUserData({ username: 'Bob', extra: 123 })).toBe(false);
+  });
+
+  it('should return true for empty object (no update fields)', () => {
+    expect(isValidPutUserData({})).toBe(true);
   });
 });

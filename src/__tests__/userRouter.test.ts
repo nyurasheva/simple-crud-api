@@ -126,14 +126,13 @@ describe('User API', () => {
 
     const userId = createResponse.body.id;
 
-    const invalidUpdatedUser = {
-      username: '',
+    const invalidUpdate = {
       age: -10,
     };
 
     const response = await request(app)
       .put(`/api/users/${userId}`)
-      .send(invalidUpdatedUser)
+      .send(invalidUpdate)
       .set('Accept', 'application/json');
 
     expect(response.status).toBe(400);
